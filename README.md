@@ -70,6 +70,15 @@ dsh --profile web --dump-config
 | `geocodingKey` | `''` | 供应商 API key（maptiler / amap 必填，nominatim 忽略） |
 | `geocodingBaseUrl` | `''` | 覆盖供应商默认端点（自建反代 / 私有化实例） |
 
+### Web 设置项
+
+上述配置同时注册为 `dsh-geo-viewer` 设置命名空间：Web 端「设置 -> 插件 -> 插件配置」会出现本插件的卡片，全部键都可在页面上编辑，保存即生效（无需重启）。
+
+- 组合层（上述 `cordis.patch.yml` 的 `config` 行）是命名空间的 base；页面保存写入用户层，按键覆盖 base。
+- 「重置」清除该键的用户层覆盖，回落到 `cordis.patch.yml` 的取值；卡片上以「已覆盖」标注。
+- URL 形态校验（`mapStyleUrl` / `maplibreCdnBase` 必须是 `http(s)`）在加载期和每次保存时执行，坏值会被宿主拒绝。
+- 无 settings 服务的部署（TUI / headless）不受影响，行为与纯 YAML 配置完全一致。
+
 ### 地理编码供应商
 
 | 供应商 | key | 限速 | 适用 |
