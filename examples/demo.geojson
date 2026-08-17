@@ -1,0 +1,31 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "示例区域 A", "level": 3 },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[116.2, 39.8], [116.7, 39.8], [116.7, 40.1], [116.2, 40.1], [116.2, 39.8]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "示例路径", "kind": "path" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[116.3, 39.9], [116.45, 39.95], [116.6, 39.85], [116.75, 39.92]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "天安门", "type": "poi" },
+      "geometry": { "type": "Point", "coordinates": [116.397428, 39.90923] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "颐和园", "type": "poi" },
+      "geometry": { "type": "Point", "coordinates": [116.275, 39.999] }
+    }
+  ]
+}
