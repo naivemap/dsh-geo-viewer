@@ -13,12 +13,34 @@
 
 ## 安装
 
-需要已安装 dsh CLI（`npm i -g @deepseek-ai/dsh`）。
+前置条件：Node.js >= 22.19，已安装 dsh CLI（`npm i -g @deepseek-ai/dsh`）。
+
+### 从 GitHub 安装
 
 ```sh
-# 从本地目录安装
-dsh plugin --profile web add /path/to/dsh-geo-viewer
+dsh plugin --profile web add github:naivemap/dsh-geo-viewer
+# 可用 #<tag|branch> 锁定版本，如 github:naivemap/dsh-geo-viewer#main
+```
 
+### 从本地目录安装
+
+```sh
+git clone https://github.com/naivemap/dsh-geo-viewer.git
+dsh plugin --profile web add /path/to/dsh-geo-viewer
+```
+
+### 从 tarball 安装（离线分发）
+
+```sh
+pnpm pack                                # 生成 dsh-geo-viewer-0.1.0.tgz
+dsh plugin --profile web add ./dsh-geo-viewer-0.1.0.tgz
+```
+
+未全局安装 dsh 时，可改用 `npx @deepseek-ai/dsh plugin --profile web add <规格>` 一次性执行；`add` 接受的包规格与 pnpm 一致（npm / Git / 本地路径 / `file:` / `link:`）。
+
+### 生效与验证
+
+```sh
 # 重启后生效（dsh web 正在运行则重启并刷新页面）
 dsh --profile web
 
@@ -26,7 +48,7 @@ dsh --profile web
 dsh --profile web --dump-config
 ```
 
-构建产物（`lib/`）已随仓库提交，本地安装无需额外构建。
+构建产物（`lib/`）已随仓库提交，以上安装方式均无需额外构建。
 
 ## 使用
 
