@@ -10,6 +10,7 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
+import { installSettingsSection, settingsNamespace, type SettingsNamespace } from '@deepseek-ai/dsh-settings'
 import { geoViewTool } from './tool.ts'
 
 export { GEO_VIEW_TOOL_NAME } from './meta.ts'
@@ -19,6 +20,13 @@ export const name = 'dsh-geo-viewer'
 
 /** 依赖服务：工具注册表 + 文件系统缝。 */
 export const inject = ['tools', 'fs']
+
+/**
+ * Web 设置项命名空间：注册到 `ctx.settings` 后，Web 端「设置 → 插件 →
+ * 插件配置」出现本插件卡片；用户层覆盖组合层（profile 的 config 行），
+ * 保存即生效，无需重启。
+ */
+export const SETTINGS_NAMESPACE: SettingsNamespace = settingsNamespace('dsh-geo-viewer')
 
 /** 部署配置。 */
 export interface Config {
@@ -44,10 +52,24 @@ export interface Config {
 
 const URL_RE = /^https?:\/\//
 
+/**
+ * URL 形态校验（加载期与每次设置写入时都跑）：坏配置响亮失败，
+ * 不允许通过设置项把插件推入不可渲染状态。
+ * @param config 待校验的已解析配置。
+ */
+function assertConfigUsable(config: Config): void {
+  if (!URL_RE.test(config.mapStyleUrl)) {
+    throw new Error(`dsh-geo-viewer: mapStyleUrl must be an http(s) URL, got ${JSON.stringify(config.mapStyleUrl)}`)
+  }
+  if (!URL_RE.test(config.maplibreCdnBase)) {
+    throw new Error(`dsh-geo-viewer: maplibreCdnBase must be an http(s) URL, got ${JSON.stringify(config.maplibreCdnBase)}`)
+  }
+}
+
 /** Loader 校验用的 Schemastery schema，默认值即推荐部署值。 */
 export const Config: Schema<Config> = Schema.object({
   mapStyleUrl: Schema.string()
-    .default('https://demotiles.maplibre.org/style.json')
+    .default('https://www.naivemap.com/demotiles/style.json')
     .description('MapLibre StyleJSON URL for the basemap, e.g. a MapTiler style URL with its key or demotiles.'),
   maplibreCdnBase: Schema.string()
     .default('https://unpkg.com/maplibre-gl@5/dist')
@@ -76,26 +98,36 @@ export const Config: Schema<Config> = Schema.object({
 })
 
 /**
- * 注册 geo_view 工具。
+ * 注册 geo_view 工具并把配置挂到 Web 设置项。
+ *
+ * 组合层（profile `config` 行）作为设置命名空间的 base：Web 端保存的用户层
+ * 覆盖其上，工具每次调用读取当前解析值，改动即时生效；无 settings 服务的
+ * 部署（TUI/headless）自动回落到组合层，行为与纯 YAML 配置完全一致。
  * @param ctx 注册上下文。
  * @param config 已校验的部署配置。
  */
 export function apply(ctx: Context, config: Config): void {
-  if (!URL_RE.test(config.mapStyleUrl)) {
-    throw new Error(`dsh-geo-viewer: mapStyleUrl must be an http(s) URL, got ${JSON.stringify(config.mapStyleUrl)}`)
-  }
-  if (!URL_RE.test(config.maplibreCdnBase)) {
-    throw new Error(`dsh-geo-viewer: maplibreCdnBase must be an http(s) URL, got ${JSON.stringify(config.maplibreCdnBase)}`)
-  }
-  ctx.tools.register(geoViewTool(ctx, {
-    mapStyleUrl: config.mapStyleUrl,
-    maplibreCdnBase: config.maplibreCdnBase.replace(/\/+$/, ''),
-    cardHeight: config.cardHeight,
-    maxFeatures: config.maxFeatures,
-    maxBytes: config.maxBytes,
-    maxGeocodeRows: config.maxGeocodeRows,
-    geocodingProvider: config.geocodingProvider,
-    geocodingKey: config.geocodingKey,
-    geocodingBaseUrl: config.geocodingBaseUrl,
+  assertConfigUsable(config)
+  let current = () => config
+  installSettingsSection(ctx, SETTINGS_NAMESPACE, Config, config, {
+    setSource: source => {
+      current = source
+    },
+    onChange: () => {},
+    validate: assertConfigUsable,
+  })
+  ctx.tools.register(geoViewTool(ctx, () => {
+    const value = current()
+    return {
+      mapStyleUrl: value.mapStyleUrl,
+      maplibreCdnBase: value.maplibreCdnBase.replace(/\/+$/, ''),
+      cardHeight: value.cardHeight,
+      maxFeatures: value.maxFeatures,
+      maxBytes: value.maxBytes,
+      maxGeocodeRows: value.maxGeocodeRows,
+      geocodingProvider: value.geocodingProvider,
+      geocodingKey: value.geocodingKey,
+      geocodingBaseUrl: value.geocodingBaseUrl,
+    }
   }))
 }

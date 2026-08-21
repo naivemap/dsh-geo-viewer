@@ -63,10 +63,11 @@ const DESCRIPTION =
 /**
  * 构造 geo_view 工具定义。
  * @param ctx 注册上下文（提供 ctx.fs 与 sandboxPolicy 解析）。
- * @param options 插件配置投影。
+ * @param options 插件配置投影的实时来源：每次调用/呈现时读取，使 Web 设置项
+ *   的修改无需重启即可生效。
  * @returns 注册到 ctx.tools 的工具定义。
  */
-export function geoViewTool(ctx: Context, options: GeoToolOptions): ToolDefinition {
+export function geoViewTool(ctx: Context, options: () => GeoToolOptions): ToolDefinition {
   return defineTool({
     name: GEO_VIEW_TOOL_NAME,
     description: DESCRIPTION,
@@ -121,7 +122,9 @@ export function geoViewTool(ctx: Context, options: GeoToolOptions): ToolDefiniti
           + `${value.note !== undefined && value.note !== '' ? ` - ${value.note}` : ''}`
           + `. Interactive map card is in the conversation; GeoJSON copy exported to ${value.artifactPath}.`,
       }],
-      presentationMeta: (_args, value) => ({
+      presentationMeta: (_args, value) => {
+      const current = options()
+      return {
         kind: 'geo-view',
         title: value.title,
         sourceKind: value.sourceKind,
@@ -129,9 +132,9 @@ export function geoViewTool(ctx: Context, options: GeoToolOptions): ToolDefiniti
         featureCount: value.featureCount,
         bounds: value.bounds,
         geojson: value.geojson,
-        styleUrl: options.mapStyleUrl,
-        maplibreCdnBase: options.maplibreCdnBase,
-        cardHeight: options.cardHeight,
+        styleUrl: current.mapStyleUrl,
+        maplibreCdnBase: current.maplibreCdnBase,
+        cardHeight: current.cardHeight,
         artifactPath: value.artifactPath,
         columns: value.columns,
         ...value.latColumn !== undefined ? { latColumn: value.latColumn } : {},
@@ -140,11 +143,14 @@ export function geoViewTool(ctx: Context, options: GeoToolOptions): ToolDefiniti
         ...value.geocodedCount !== undefined ? { geocodedCount: value.geocodedCount } : {},
         ...value.geocodeFailed !== undefined ? { geocodeFailed: value.geocodeFailed } : {},
         ...value.note !== undefined && value.note !== '' ? { note: value.note } : {},
-      }),
+      }
+      },
     },
     // 读取源文件为只读；制品按内容寻址写入，并发同参写同一字节，安全。
     isConcurrencySafe: () => true,
     async execute(args, exec) {
+      // 单次调用内取一次快照：同一调用的护栏与地理编码口径一致。
+      const opts = options()
       const provided = [args.path, args.data, args.addresses].filter(v => v !== undefined).length
       if (provided !== 1) {
         throw new Error(
@@ -181,7 +187,7 @@ export function geoViewTool(ctx: Context, options: GeoToolOptions): ToolDefiniti
         }
         sourceKind = 'addresses'
         sourceLabel = `${String(args.addresses.length)} addresses`
-        const geo = await geocodeRows(args.addresses, options)
+        const geo = await geocodeRows(args.addresses, opts)
         geocodedCount = geo.geocodedCount
         geocodeFailed = geo.geocodeFailed
         fc = geo.fc
@@ -191,7 +197,7 @@ export function geoViewTool(ctx: Context, options: GeoToolOptions): ToolDefiniti
         if (ext === 'xlsx' || ext === 'xls' || ext === 'xlsm') {
           const bytes = await ctx.fs.readBytes(target, exec.signal, 64 * 1024 * 1024)
           const rows = await rowsFromXlsx(bytes)
-          const table = await tableToFeatures(rows, args, options)
+          const table = await tableToFeatures(rows, args, opts)
           sourceKind = 'xlsx'
           sourceLabel = target.displayPath
           ;({ fc, skippedRows } = table)
@@ -204,7 +210,7 @@ export function geoViewTool(ctx: Context, options: GeoToolOptions): ToolDefiniti
           note = table.note
         } else {
           const text = await ctx.fs.readText(target, exec.signal)
-          const parsed = await parseTextualSource(text, ext, args, options, target.displayPath)
+          const parsed = await parseTextualSource(text, ext, args, opts, target.displayPath)
           sourceKind = parsed.sourceKind
           sourceLabel = target.displayPath
           ;({ fc, skippedRows } = parsed)
@@ -219,7 +225,7 @@ export function geoViewTool(ctx: Context, options: GeoToolOptions): ToolDefiniti
       } else {
         const data = args.data ?? ''
         if (data.trim() === '') throw new Error('invalid geo_view call: `data` is empty')
-        const parsed = await parseTextualSource(data, '', args, options, 'inline data')
+        const parsed = await parseTextualSource(data, '', args, opts, 'inline data')
         sourceKind = parsed.sourceKind
         sourceLabel = 'inline data'
         ;({ fc, skippedRows } = parsed)
@@ -234,9 +240,9 @@ export function geoViewTool(ctx: Context, options: GeoToolOptions): ToolDefiniti
 
       // 体量护栏：meta 与规范值各持久化一份 geojson，超限响亮失败。
       const bytes = Buffer.byteLength(JSON.stringify(fc), 'utf8')
-      if (bytes > options.maxBytes) {
+      if (bytes > opts.maxBytes) {
         throw new Error(
-          `GeoJSON is ${String(bytes)} bytes, over the ${String(options.maxBytes)}-byte limit - `
+          `GeoJSON is ${String(bytes)} bytes, over the ${String(opts.maxBytes)}-byte limit - `
           + 'downsample the data (fewer features or properties), or raise the dsh-geo-viewer `maxBytes` config',
         )
       }

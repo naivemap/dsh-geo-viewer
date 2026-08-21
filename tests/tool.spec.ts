@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import ExcelJS from 'exceljs'
 import type { Context } from '@deepseek-ai/cordis'
 import type { FsTarget } from '@deepseek-ai/dsh-fs'
@@ -56,7 +56,7 @@ async function run(tool: ReturnType<typeof geoViewTool>, args: Record<string, un
 describe('geo_view execute', () => {
   it('内联 CSV：检测经纬度列并产出要素与制品', async () => {
     const { ctx, written } = makeCtx(new Map())
-    const tool = geoViewTool(ctx, OPTIONS)
+    const tool = geoViewTool(ctx, () => OPTIONS)
     const value = await run(tool, { data: 'name,纬度,经度\n甲,39.9,116.4\n乙,31.2,121.5\n', title: '内联示例' })
     expect(value.featureCount).toBe(2)
     expect(value.sourceKind).toBe('inline-csv')
@@ -71,7 +71,7 @@ describe('geo_view execute', () => {
 
   it('规范值携带 GeoJSON（presentationMeta 的投影源，回放契约）', async () => {
     const { ctx } = makeCtx(new Map())
-    const tool = geoViewTool(ctx, OPTIONS)
+    const tool = geoViewTool(ctx, () => OPTIONS)
     const value = await run(tool, { data: 'lat,lng\n10,20\n-5,30\n' })
     expect(value.geojson).toMatchObject({ type: 'FeatureCollection' })
     expect(value.sourceKind).toBe('inline-csv')
@@ -80,7 +80,7 @@ describe('geo_view execute', () => {
   it('CSV 文件路径来源', async () => {
     const files = new Map([['data.csv', 'city,lat,lng\n北京,39.9,116.4\n上海,31.2,121.5\n杭州,30.3,120.2\n']])
     const { ctx, written } = makeCtx(files)
-    const tool = geoViewTool(ctx, OPTIONS)
+    const tool = geoViewTool(ctx, () => OPTIONS)
     const value = await run(tool, { path: 'data.csv' })
     expect(value.featureCount).toBe(3)
     expect(value.sourceKind).toBe('csv')
@@ -97,7 +97,7 @@ describe('geo_view execute', () => {
     const buffer = await workbook.xlsx.writeBuffer()
     const files = new Map([['points.xlsx', new Uint8Array(buffer)]])
     const { ctx } = makeCtx(files)
-    const tool = geoViewTool(ctx, OPTIONS)
+    const tool = geoViewTool(ctx, () => OPTIONS)
     const value = await run(tool, { path: 'points.xlsx' })
     expect(value.sourceKind).toBe('xlsx')
     expect(value.featureCount).toBe(2)
@@ -113,7 +113,7 @@ describe('geo_view execute', () => {
       ],
     })]])
     const { ctx } = makeCtx(files)
-    const tool = geoViewTool(ctx, OPTIONS)
+    const tool = geoViewTool(ctx, () => OPTIONS)
     const value = await run(tool, { path: 'area.geojson' })
     expect(value.sourceKind).toBe('geojson')
     expect(value.featureCount).toBe(1)
@@ -121,7 +121,7 @@ describe('geo_view execute', () => {
 
   it('参数互斥校验', async () => {
     const { ctx } = makeCtx(new Map())
-    const tool = geoViewTool(ctx, OPTIONS)
+    const tool = geoViewTool(ctx, () => OPTIONS)
     await expect(run(tool, {})).rejects.toThrow(/exactly one/)
     await expect(run(tool, { path: 'a.csv', data: 'lat,lng\n1,2' })).rejects.toThrow(/mutually exclusive/)
   })
@@ -129,14 +129,14 @@ describe('geo_view execute', () => {
   it('无地理列表头时给出可操作报错', async () => {
     const files = new Map([['plain.csv', 'name,score\na,1\nb,2\n']])
     const { ctx } = makeCtx(files)
-    const tool = geoViewTool(ctx, OPTIONS)
+    const tool = geoViewTool(ctx, () => OPTIONS)
     await expect(run(tool, { path: 'plain.csv' })).rejects.toThrow(/latColumn/)
   })
 
   it('地址列走地理编码：amap 缺 key 响亮报错', async () => {
     const files = new Map([['addr.csv', 'name,address\na,北京市\nb,上海市\n']])
     const { ctx } = makeCtx(files)
-    const tool = geoViewTool(ctx, { ...OPTIONS, geocodingProvider: 'amap', geocodingKey: '' })
+    const tool = geoViewTool(ctx, () => ({ ...OPTIONS, geocodingProvider: 'amap', geocodingKey: '' }))
     await expect(run(tool, { path: 'addr.csv' })).rejects.toThrow(/geocodingKey/)
   })
 })

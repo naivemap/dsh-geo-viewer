@@ -1,4 +1,5 @@
 import Schema from "@deepseek-ai/schemastery";
+import { SettingsNamespace } from "@deepseek-ai/dsh-settings";
 import { Context } from "@deepseek-ai/cordis";
 //#region src/meta.d.ts
 /**
@@ -17,6 +18,12 @@ declare const GEO_VIEW_TOOL_NAME = "geo_view";
 declare const name = "dsh-geo-viewer";
 /** 依赖服务：工具注册表 + 文件系统缝。 */
 declare const inject: string[];
+/**
+ * Web 设置项命名空间：注册到 `ctx.settings` 后，Web 端「设置 → 插件 →
+ * 插件配置」出现本插件卡片；用户层覆盖组合层（profile 的 config 行），
+ * 保存即生效，无需重启。
+ */
+declare const SETTINGS_NAMESPACE: SettingsNamespace;
 /** 部署配置。 */
 interface Config {
   /** MapLibre StyleJSON URL（底图）。 */
@@ -41,10 +48,14 @@ interface Config {
 /** Loader 校验用的 Schemastery schema，默认值即推荐部署值。 */
 declare const Config: Schema<Config>;
 /**
- * 注册 geo_view 工具。
+ * 注册 geo_view 工具并把配置挂到 Web 设置项。
+ *
+ * 组合层（profile `config` 行）作为设置命名空间的 base：Web 端保存的用户层
+ * 覆盖其上，工具每次调用读取当前解析值，改动即时生效；无 settings 服务的
+ * 部署（TUI/headless）自动回落到组合层，行为与纯 YAML 配置完全一致。
  * @param ctx 注册上下文。
  * @param config 已校验的部署配置。
  */
 declare function apply(ctx: Context, config: Config): void;
 //#endregion
-export { Config, GEO_VIEW_TOOL_NAME, apply, inject, name };
+export { Config, GEO_VIEW_TOOL_NAME, SETTINGS_NAMESPACE, apply, inject, name };
