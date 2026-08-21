@@ -369,7 +369,7 @@ const CLIENT_CSS = `
 .dgv-root { margin: 4px 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
 .dgv-head { display: flex; align-items: baseline; gap: 8px; font-size: 12px; opacity: .75; margin: 2px 0 6px; white-space: nowrap; overflow: hidden; }
 .dgv-wrap { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid rgba(127,127,127,.25); background: rgba(127,127,127,.08); }
-.dgv-map { position: absolute; inset: 0; }
+.dgv-map { height: 100%; }
 .dgv-wrap.dgv-full { position: fixed; inset: 0; z-index: 2147483000; border: none; border-radius: 0; }
 .dgv-bar { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 2; }
 .dgv-chip { position: absolute; top: 8px; left: 8px; z-index: 2; font-size: 11px; padding: 2px 9px; border-radius: 999px; background: rgba(127,127,127,.35); color: #fff; backdrop-filter: blur(4px); pointer-events: none; }
