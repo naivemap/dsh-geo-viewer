@@ -37,7 +37,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 /** 中文文案（键同时是卡片组件的取词键）。 */
 export const zh = {
   title: '地理可视化（dsh-geo-viewer）',
-  description: '地图底图、地理编码供应商与体量护栏；保存后立即生效。',
+  description: '地图底图、地理编码供应商',
   unsaved: '有未保存的修改',
   readOnly: '当前部署只读，设置需写入配置文件。',
   saveFailed: '保存失败：请检查取值后重试。',
@@ -116,7 +116,7 @@ type GeoField =
   | 'geocodingBaseUrl'
 
 /** 一条草稿会被解析成：清空回落 / 写入新值 / 非法（阻止保存）。 */
-type FieldWrite = { kind: 'clear' } | { kind: 'set', value: string | number }
+type FieldWrite = { kind: 'clear' } | { kind: 'set'; value: string | number }
 
 /** 字段转换规格：section 值 <-> 控件文本。 */
 interface FieldSpec {
@@ -129,8 +129,8 @@ interface FieldSpec {
 function textField(field: GeoField): FieldSpec {
   return {
     field,
-    format: value => typeof value === 'string' ? value : '',
-    parse: text => {
+    format: (value) => (typeof value === 'string' ? value : ''),
+    parse: (text) => {
       const trimmed = text.trim()
       return trimmed === '' ? { kind: 'clear' } : { kind: 'set', value: trimmed }
     },
@@ -141,8 +141,8 @@ function textField(field: GeoField): FieldSpec {
 function naturalField(field: GeoField): FieldSpec {
   return {
     field,
-    format: value => typeof value === 'number' ? String(value) : '',
-    parse: text => {
+    format: (value) => (typeof value === 'number' ? String(value) : ''),
+    parse: (text) => {
       const trimmed = text.trim()
       if (trimmed === '') return { kind: 'clear' }
       const parsed = Number(trimmed)
@@ -155,8 +155,8 @@ function naturalField(field: GeoField): FieldSpec {
 function providerField(field: GeoField): FieldSpec {
   return {
     field,
-    format: value => typeof value === 'string' && (PROVIDERS as readonly string[]).includes(value) ? value : '',
-    parse: text => (PROVIDERS as readonly string[]).includes(text) ? { kind: 'set', value: text } : undefined,
+    format: (value) => (typeof value === 'string' && (PROVIDERS as readonly string[]).includes(value) ? value : ''),
+    parse: (text) => ((PROVIDERS as readonly string[]).includes(text) ? { kind: 'set', value: text } : undefined),
   }
 }
 
@@ -193,8 +193,8 @@ export interface GeoCardState {
 
 /** 暂存草稿模型：scope 快照 + 本地草稿的联合投影。 */
 class GeoCardForm {
-  private readonly specs = new Map(FIELD_SPECS.map(spec => [spec.field, spec]))
-  private readonly staged = new Map<GeoField, { text: string, clear: boolean }>()
+  private readonly specs = new Map(FIELD_SPECS.map((spec) => [spec.field, spec]))
+  private readonly staged = new Map<GeoField, { text: string; clear: boolean }>()
   private readonly listeners = new Set<() => void>()
   private saving = false
   private failed = false
@@ -220,7 +220,7 @@ class GeoCardForm {
       available: snapshot.status === 'ready',
       writable: snapshot.writable,
       dirty: plan.length > 0,
-      invalid: plan.some(item => item.run === undefined),
+      invalid: plan.some((item) => item.run === undefined),
       saving: this.saving,
       failed: this.failed,
     }
@@ -237,7 +237,7 @@ class GeoCardForm {
         invalid: false,
       }
     }
-    const write = staged.clear ? { kind: 'clear' } as const : spec.parse(staged.text)
+    const write = staged.clear ? ({ kind: 'clear' } as const) : spec.parse(staged.text)
     return {
       text: staged.text,
       overridden: write?.kind === 'set',
@@ -273,13 +273,13 @@ class GeoCardForm {
   /** 逐字段写入暂存编辑，再按宿主接受结果重播种草稿。 */
   private async save(): Promise<void> {
     const plan = this.plan()
-    const writes = plan.flatMap(item => item.run === undefined ? [] : [item.run])
+    const writes = plan.flatMap((item) => (item.run === undefined ? [] : [item.run]))
     if (plan.length === 0 || this.saving || writes.length !== plan.length) return
     this.saving = true
     this.failed = false
     this.publish()
     let landed = true
-    for (const write of writes) landed = await write() && landed
+    for (const write of writes) landed = (await write()) && landed
     if (landed) this.staged.clear()
     this.saving = false
     this.failed = !landed
@@ -287,8 +287,8 @@ class GeoCardForm {
   }
 
   /** 一次保存会执行的写集；非法草稿项无 run（表单脏而不可存）。 */
-  private plan(): Array<{ field: GeoField, run: (() => Promise<boolean>) | undefined }> {
-    const plan: Array<{ field: GeoField, run: (() => Promise<boolean>) | undefined }> = []
+  private plan(): Array<{ field: GeoField; run: (() => Promise<boolean>) | undefined }> {
+    const plan: Array<{ field: GeoField; run: (() => Promise<boolean>) | undefined }> = []
     for (const [field, staged] of this.staged) {
       const spec = this.specOf(field)
       if (staged.clear) {
@@ -386,7 +386,12 @@ const styles = {
     display: 'flex',
   } satisfies CSSProperties,
   headText: { flexDirection: 'column', flex: 1, gap: 4, minWidth: 0, display: 'flex' } satisfies CSSProperties,
-  name: { color: 'var(--dsw-alias-label-primary)', fontSize: 15, fontWeight: 600, lineHeight: 1.4 } satisfies CSSProperties,
+  name: {
+    color: 'var(--dsw-alias-label-primary)',
+    fontSize: 15,
+    fontWeight: 600,
+    lineHeight: 1.4,
+  } satisfies CSSProperties,
   description: { color: 'var(--dsw-alias-label-tertiary)', fontSize: 13, lineHeight: 1.5 } satisfies CSSProperties,
   pending: {
     whiteSpace: 'nowrap',
@@ -399,11 +404,40 @@ const styles = {
     fontWeight: 500,
     lineHeight: '17px',
   } satisfies CSSProperties,
-  chevron: { color: 'var(--dsw-alias-label-tertiary)', flex: 'none', transition: 'transform .16s' } satisfies CSSProperties,
-  body: { borderTop: '1px solid var(--dsw-alias-border-l2)', margin: '0 16px', paddingBottom: 8, display: 'flex', flexDirection: 'column' } satisfies CSSProperties,
-  readOnly: { color: 'var(--dsw-alias-label-tertiary)', margin: '12px 0 0', fontSize: 12, lineHeight: 1.5 } satisfies CSSProperties,
-  field: { flexDirection: 'column', gap: 6, padding: '12px 0', borderBottom: '1px solid var(--dsw-alias-border-l2)', display: 'flex' } satisfies CSSProperties,
-  fieldHead: { alignItems: 'center', gap: 10, fontSize: 12, fontWeight: 500, lineHeight: '18px', color: 'var(--dsw-alias-label-secondary)', display: 'inline-flex' } satisfies CSSProperties,
+  chevron: {
+    color: 'var(--dsw-alias-label-tertiary)',
+    flex: 'none',
+    transition: 'transform .16s',
+  } satisfies CSSProperties,
+  body: {
+    borderTop: '1px solid var(--dsw-alias-border-l2)',
+    margin: '0 16px',
+    paddingBottom: 8,
+    display: 'flex',
+    flexDirection: 'column',
+  } satisfies CSSProperties,
+  readOnly: {
+    color: 'var(--dsw-alias-label-tertiary)',
+    margin: '12px 0 0',
+    fontSize: 12,
+    lineHeight: 1.5,
+  } satisfies CSSProperties,
+  field: {
+    flexDirection: 'column',
+    gap: 6,
+    padding: '12px 0',
+    borderBottom: '1px solid var(--dsw-alias-border-l2)',
+    display: 'flex',
+  } satisfies CSSProperties,
+  fieldHead: {
+    alignItems: 'center',
+    gap: 10,
+    fontSize: 12,
+    fontWeight: 500,
+    lineHeight: '18px',
+    color: 'var(--dsw-alias-label-secondary)',
+    display: 'inline-flex',
+  } satisfies CSSProperties,
   fieldLabel: { flex: 1, minWidth: 0 } satisfies CSSProperties,
   reset: {
     appearance: 'none',
@@ -430,8 +464,22 @@ const styles = {
   } satisfies CSSProperties,
   hint: { color: 'var(--dsw-alias-label-tertiary)', fontSize: 12, lineHeight: '18px' } satisfies CSSProperties,
   error: { color: 'var(--dsw-alias-state-error-primary)', fontSize: 12, lineHeight: '18px' } satisfies CSSProperties,
-  footer: { borderTop: '1px solid var(--dsw-alias-border-l2)', justifyContent: 'flex-end', alignItems: 'center', gap: 8, padding: '12px 0 4px', display: 'flex' } satisfies CSSProperties,
-  failed: { minWidth: 0, color: 'var(--dsw-alias-label-error)', flex: 1, margin: 0, fontSize: 12, lineHeight: 1.5 } satisfies CSSProperties,
+  footer: {
+    borderTop: '1px solid var(--dsw-alias-border-l2)',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 8,
+    padding: '12px 0 4px',
+    display: 'flex',
+  } satisfies CSSProperties,
+  failed: {
+    minWidth: 0,
+    color: 'var(--dsw-alias-label-error)',
+    flex: 1,
+    margin: 0,
+    fontSize: 12,
+    lineHeight: 1.5,
+  } satisfies CSSProperties,
   discard: {
     appearance: 'none',
     font: 'inherit',
@@ -494,77 +542,118 @@ const FIELD_HINTS: Partial<Record<GeoField, GeoLocaleKey>> = {
 export function GeoSettingsCard(props: GeoSettingsCardProps) {
   const [open, setOpen] = useState(false)
   const { t } = props
-  const state = props.useGeoCard(snapshot => snapshot)
+  const state = props.useGeoCard((snapshot) => snapshot)
   if (!state.available) return null
   const blocked = !state.dirty || state.invalid || state.saving
   return (
     <li style={styles.card}>
       <button
-        type="button"
+        type='button'
         style={styles.header}
         aria-expanded={open}
         aria-label={`${t(open ? 'collapse' : 'expand')}: ${t('title')}`}
-        onClick={() => { setOpen(!open) }}
+        onClick={() => {
+          setOpen(!open)
+        }}
       >
         <span style={styles.headText}>
           <span style={styles.name}>{t('title')}</span>
           <span style={styles.description}>{t('description')}</span>
         </span>
         {state.dirty ? <span style={styles.pending}>{t('unsaved')}</span> : null}
-        <span style={{ ...styles.chevron, transform: open ? 'rotate(180deg)' : undefined }}>▾</span>
+        <span style={{ ...styles.chevron, transform: open ? 'rotate(180deg)' : undefined }}>
+          <svg
+            xmlns='http://www.w3.org/2000/svg'
+            width='14'
+            height='14'
+            viewBox='0 0 24 24'
+            fill='none'
+            stroke='currentColor'
+            stroke-width='2'
+            stroke-linecap='round'
+            stroke-linejoin='round'
+          >
+            <path d='m6 9 6 6 6-6' />
+          </svg>
+        </span>
       </button>
       {open ? (
         <div style={styles.body}>
-          {!state.writable ? <p style={styles.readOnly} role="status">{t('readOnly')}</p> : null}
-          {FIELD_SPECS.map(spec => {
+          {!state.writable ? (
+            <p style={styles.readOnly} role='status'>
+              {t('readOnly')}
+            </p>
+          ) : null}
+          {FIELD_SPECS.map((spec) => {
             const hintKey = FIELD_HINTS[spec.field]
-            const numeric = spec.field === 'cardHeight' || spec.field === 'maxFeatures' || spec.field === 'maxBytes' || spec.field === 'maxGeocodeRows'
+            const numeric =
+              spec.field === 'cardHeight' ||
+              spec.field === 'maxFeatures' ||
+              spec.field === 'maxBytes' ||
+              spec.field === 'maxGeocodeRows'
             return (
-            <div key={spec.field} style={styles.field}>
-              <span style={styles.fieldHead}>
-                <span style={styles.fieldLabel}>{t(FIELD_LABEL_KEYS[spec.field])}</span>
-                {state.fields[spec.field].overridden ? (
-                  <button
-                    type="button"
-                    style={styles.reset}
+              <div key={spec.field} style={styles.field}>
+                <span style={styles.fieldHead}>
+                  <span style={styles.fieldLabel}>{t(FIELD_LABEL_KEYS[spec.field])}</span>
+                  {state.fields[spec.field].overridden ? (
+                    <button
+                      type='button'
+                      style={styles.reset}
+                      disabled={!state.writable}
+                      onClick={() => {
+                        props.resetField(spec.field)
+                      }}
+                    >
+                      {t('reset')}
+                    </button>
+                  ) : null}
+                </span>
+                {spec.field === 'geocodingProvider' ? (
+                  <select
+                    style={styles.input}
                     disabled={!state.writable}
-                    onClick={() => { props.resetField(spec.field) }}
+                    value={state.fields.geocodingProvider.text}
+                    onChange={(event) => {
+                      props.edit('geocodingProvider', event.target.value)
+                    }}
                   >
-                    {t('reset')}
-                  </button>
-                ) : null}
-              </span>
-              {spec.field === 'geocodingProvider' ? (
-                <select
-                  style={styles.input}
-                  disabled={!state.writable}
-                  value={state.fields.geocodingProvider.text}
-                  onChange={event => { props.edit('geocodingProvider', event.target.value) }}
-                >
-                  {PROVIDERS.map(provider => (
-                    <option key={provider} value={provider}>{t(PROVIDER_LABEL_KEYS[provider])}</option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  style={styles.input}
-                  disabled={!state.writable}
-                  value={state.fields[spec.field].text}
-                  inputMode={numeric ? 'numeric' : undefined}
-                  onChange={event => { props.edit(spec.field, event.target.value) }}
-                />
-              )}
-              {hintKey !== undefined ? <span style={styles.hint}>{t(hintKey)}</span> : null}
-              {state.fields[spec.field].invalid ? <span style={styles.error}>{t('invalidNumber')}</span> : null}
-            </div>
+                    {PROVIDERS.map((provider) => (
+                      <option key={provider} value={provider}>
+                        {t(PROVIDER_LABEL_KEYS[provider])}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    style={styles.input}
+                    disabled={!state.writable}
+                    value={state.fields[spec.field].text}
+                    inputMode={numeric ? 'numeric' : undefined}
+                    onChange={(event) => {
+                      props.edit(spec.field, event.target.value)
+                    }}
+                  />
+                )}
+                {hintKey !== undefined ? <span style={styles.hint}>{t(hintKey)}</span> : null}
+                {state.fields[spec.field].invalid ? <span style={styles.error}>{t('invalidNumber')}</span> : null}
+              </div>
             )
           })}
           <div style={styles.footer}>
-            {state.failed ? <p style={styles.failed} role="status">{t('saveFailed')}</p> : null}
-            <button type="button" style={styles.discard} disabled={!state.dirty || state.saving} onClick={props.discard}>
+            {state.failed ? (
+              <p style={styles.failed} role='status'>
+                {t('saveFailed')}
+              </p>
+            ) : null}
+            <button
+              type='button'
+              style={styles.discard}
+              disabled={!state.dirty || state.saving}
+              onClick={props.discard}
+            >
               {t('discard')}
             </button>
-            <button type="button" style={styles.saveButton} disabled={blocked} onClick={props.save}>
+            <button type='button' style={styles.saveButton} disabled={blocked} onClick={props.save}>
               {t('save')}
             </button>
           </div>
@@ -591,7 +680,10 @@ export class GeoViewerCardController {
   private projection(): GeoCardState {
     return {
       ...this.form.shell(),
-      fields: Object.fromEntries(FIELD_SPECS.map(spec => [spec.field, this.form.field(spec.field)])) as Record<GeoField, FieldState>,
+      fields: Object.fromEntries(FIELD_SPECS.map((spec) => [spec.field, this.form.field(spec.field)])) as Record<
+        GeoField,
+        FieldState
+      >,
     }
   }
 

@@ -122,7 +122,7 @@ export function geoViewMetaFrom(meta: unknown): GeoViewMeta | undefined {
     featureCount,
     bounds: bounds as [number, number, number, number],
     geojson,
-    styleUrl: typeof record['styleUrl'] === 'string' ? record['styleUrl'] : 'https://demotiles.maplibre.org/style.json',
+    styleUrl: typeof record['styleUrl'] === 'string' ? record['styleUrl'] : 'https://www.naivemap.com/demotiles/style.json',
     maplibreCdnBase: typeof record['maplibreCdnBase'] === 'string' ? record['maplibreCdnBase'] : 'https://unpkg.com/maplibre-gl@5/dist',
     cardHeight: isFiniteNumber(record['cardHeight']) ? record['cardHeight'] : 420,
     artifactPath: typeof record['artifactPath'] === 'string' ? record['artifactPath'] : '',

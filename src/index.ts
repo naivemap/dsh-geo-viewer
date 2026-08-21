@@ -69,7 +69,7 @@ function assertConfigUsable(config: Config): void {
 /** Loader 校验用的 Schemastery schema，默认值即推荐部署值。 */
 export const Config: Schema<Config> = Schema.object({
   mapStyleUrl: Schema.string()
-    .default('https://demotiles.maplibre.org/style.json')
+    .default('https://www.naivemap.com/demotiles/style.json')
     .description('MapLibre StyleJSON URL for the basemap, e.g. a MapTiler style URL with its key or demotiles.'),
   maplibreCdnBase: Schema.string()
     .default('https://unpkg.com/maplibre-gl@5/dist')
