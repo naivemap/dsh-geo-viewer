@@ -65,51 +65,19 @@ dsh --profile web --dump-config
 
 ## 配置
 
-在 profile 的 `cordis.patch.yml`（或 home 级 `$DSH_HOME/cordis.patch.yml`）中覆盖配置行：
+全部配置项（底图 `mapStyleUrl`、`cardHeight`、`maxFeatures` / `maxBytes` / `maxGeocodeRows` 护栏、地理编码供应商与 key 等）均在 Web 端「设置 -> 插件 -> 插件配置」的 `dsh-geo-viewer` 卡片上编辑，保存即生效（无需重启）；「重置」可回退到 YAML 层取值。
+
+- 地理编码供应商：`nominatim`（默认，免费、无需 key）/ `maptiler` / `amap`（国内地址效果最好，结果自动 GCJ-02 -> WGS-84）；后两者需填 key，缺失时首次地理编码即报错提示
+- TUI / headless 等无 settings 服务的部署，可在 profile 的 `cordis.patch.yml`（或 home 级 `$DSH_HOME/cordis.patch.yml`）中覆盖同名键：
 
 ```yaml
 - replace:
   - id: dsh-geo-viewer
     name: 'dsh-geo-viewer'
     config:
-      mapStyleUrl: 'https://api.maptiler.com/maps/basic-v2/style.json?key=<你的MapTiler_KEY>'
       geocodingProvider: 'amap'
       geocodingKey: '<你的高德KEY>'
-      cardHeight: 480
 ```
-
-### 配置项
-
-| 键 | 默认值 | 说明 |
-|---|---|---|
-| `mapStyleUrl` | `https://demotiles.maplibre.org/style.json` | MapLibre StyleJSON 底图地址；可换 MapTiler / Mapbox 兼容 / 自建矢量瓦片服务的 style URL |
-| `maplibreCdnBase` | `https://unpkg.com/maplibre-gl@5/dist` | maplibre-gl 静态资源（JS/CSS）CDN 目录，按需换成 jsdelivr 或内网镜像 |
-| `cardHeight` | `420` | 卡片内地图高度（px） |
-| `maxFeatures` | `10000` | 单次渲染要素数上限 |
-| `maxBytes` | `4000000` | 单次渲染 GeoJSON 字节上限 |
-| `maxGeocodeRows` | `100` | 单次地理编码行数上限（保护供应商配额） |
-| `geocodingProvider` | `nominatim` | `nominatim` / `maptiler` / `amap` |
-| `geocodingKey` | `''` | 供应商 API key（maptiler / amap 必填，nominatim 忽略） |
-| `geocodingBaseUrl` | `''` | 覆盖供应商默认端点（自建反代 / 私有化实例） |
-
-### Web 设置项
-
-上述配置同时注册为 `dsh-geo-viewer` 设置命名空间：Web 端「设置 -> 插件 -> 插件配置」会出现本插件的卡片，全部键都可在页面上编辑，保存即生效（无需重启）。
-
-- 组合层（上述 `cordis.patch.yml` 的 `config` 行）是命名空间的 base；页面保存写入用户层，按键覆盖 base。
-- 「重置」清除该键的用户层覆盖，回落到 `cordis.patch.yml` 的取值；卡片上以「已覆盖」标注。
-- URL 形态校验（`mapStyleUrl` / `maplibreCdnBase` 必须是 `http(s)`）在加载期和每次保存时执行，坏值会被宿主拒绝。
-- 无 settings 服务的部署（TUI / headless）不受影响，行为与纯 YAML 配置完全一致。
-
-### 地理编码供应商
-
-| 供应商 | key | 限速 | 适用 |
-|---|---|---|---|
-| Nominatim（默认） | 不需要 | 1 请求/秒（插件已内置） | 国际数据；免费公共实例 |
-| MapTiler | 需要 | 宽松 | 与 MapTiler 底图配套；国际数据 |
-| amap（高德） | 需要 | 内置 300ms 间隔 | 国内地址效果最好；结果自动 GCJ-02 → WGS-84 |
-
-key 缺失时首次地理编码即报错并提示对应配置项，不会静默失败。
 
 ## 工作原理
 
